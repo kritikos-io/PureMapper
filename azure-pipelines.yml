@@ -5,152 +5,157 @@ resources:
         submodules: true
         lfs: true
 trigger:
+  batch: true
   branches:
     include:
       - master
       - develop
       - feature/*
       - bugfix/*
+      - release/*
   paths:
     include:
+      - azure-pipelines.yml
       - src/*
       - tests/*
 variables:
   - group: Environment
-
+  - group: ApiKeys
+  - name: SONAR_PROJECT
+    value: kritikos-io_PureMapper
 jobs:
-- job: Setup
+- job: Version
   pool:
-    vmImage: windows-latest
+    vmImage: ubuntu-latest
   steps:
-  - powershell: |
-      dotnet tool install --tool-path .. gitversion.tool
-    displayName: Installing Dotnet Tools
-
-  - powershell: |
-      $git = $(../dotnet-gitversion /output json /showvariable NugetVersion)
-      echo "##vso[task.setvariable variable=gitVersion;isOutput=true]$(../dotnet-gitversion /output json /showvariable NugetVersion)"
-    name: versioning
-    displayName: Setting version from git
-
-  - powershell: |
-      echo "Current version: $(versioning.gitVersion)"
-    displayName: Shows currently compiling version
-
-- job: Building
+    - pwsh: dotnet tool install --tool-path .. gitversion.tool
+      displayName: Install GitVersion
+    - pwsh: |
+        echo "##vso[task.setvariable variable=gitVersion;isOutput=true]$(../dotnet-gitversion /output json /showvariable SemVer)"
+        "Current version: $(../dotnet-gitversion /output json /showvariable SemVer)"
+      displayName: Sets SemVer
+      name: versioning
+- job: Build
   pool:
     vmImage: ubuntu-latest
   dependsOn:
-    - Setup
+    - Version
   variables:
-    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+    Version: $[ dependencies.Version.outputs['versioning.gitVersion'] ]
   steps:
   - checkout: self
     fetchDepth: 1
-
   - task: DotNetCoreCLI@2
-    displayName: Restoring nugets
+    displayName: Build Solution
     inputs:
-      command: 'restore'
-      arguments: -Project2ProjectTimeOut 20
-      verbosityRestore: Normal
-
-  - task: DotNetCoreCLI@2
-    displayName: Building Projects
-    inputs:
-      command: build
-      projects: src/*/*.csproj
+      command: 'build'
       configuration: $(BuildConfiguration)
-      arguments: -o $(build.artifactStagingDirectory)/build
+      arguments: '-o $(build.artifactStagingDirectory)/build'
       versioningScheme: byEnvVar
       versionEnvVar: Version
-
+      verbosityRestore: Minimal
   - task: PublishBuildArtifacts@1
-    displayName: Publish build artifacts
+    displayName: Publish Build
     inputs:
       PathtoPublish: $(build.artifactStagingDirectory)/build
       ArtifactName: 'drop'
-
+      publishLocation: 'Container'
   - task: DotNetCoreCLI@2
-    displayName: Packing as Nugets
+    displayName: Pack Nugets
     inputs:
-      command: pack
-      searchPatternPack: 'src/*/*.csproj'
+      command: 'pack'
+      packagesToPack: 'src/*/*.csproj'
+      packDirectory: '$(build.artifactStagingDirectory)/nuget'
       configuration: $(BuildConfiguration)
       versioningScheme: byEnvVar
       versionEnvVar: Version
-      verbosityPack: normal
-      packDirectory: $(build.artifactStagingDirectory)/nuget
-
+      verbosityRestore: Minimal
+      verbosityPack: Minimal
   - task: PublishBuildArtifacts@1
-    name: publishNuget
-    displayName: Publish nugets
+    displayName: Publish Nugets
     inputs:
-      PathtoPublish: $(build.artifactStagingDirectory)/nuget
+      PathtoPublish: '$(build.artifactStagingDirectory)/nuget'
       ArtifactName: 'nuget'
-
-- job: Testing
+      publishLocation: 'Container'
+- job: Test
   pool:
     vmImage: ubuntu-latest
   dependsOn:
-    - Setup
+    - Version
   variables:
-    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+    Version: $[ dependencies.Version.outputs['versioning.gitVersion'] ]
+    GITHUB_KEY: $(GitHubApiKey)
+    SONAR_ORG: $(SonarCloudOrganization)
+    SONAR_KEY: $(SonarCloudApiKey)
+    SONAR_URL: $(SonarCloudHost)
+    CODECOV_KEY: $(CodeCovApiKey)
+    COVERALLS_KEY: $(CoverallsApiKey)
   steps:
   - checkout: self
-    fetchDepth: 1
-
+  - pwsh: |
+      dotnet tool install --tool-path .. dotnet-sonarscanner
+      dotnet tool install --tool-path .. coveralls.net
+      dotnet tool install --tool-path .. Codecov.Tool
+    displayName: Install Tools
+  - pwsh: |
+      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.branch.name="$(Build.SourceBranchName)" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY)
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    displayName: SonarCloud (commit)
+  - pwsh: |
+      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY) /d:sonar.pullrequest.key="$(System.PullRequest.PullRequestNumber)" /d:sonar.pullrequest.branch="$(Build.SourceBranchName)" /d:sonar.pullrequest.provider="github"
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    displayName: SonarCloud (PR)
   - task: DotNetCoreCLI@2
-    name: dotnetRestore
-    displayName: Restoring nugets
+    displayName: Test Solution
     inputs:
-      command: 'restore'
-      arguments: -Project2ProjectTimeOut 20 --packages "$(Build.BinariesDirectory)/.nuget)
-      verbosityRestore: Normal
-
-  - task: DotNetCoreCLI@2
-    name: dotnetBuild
-    displayName: Building Projects
-    inputs:
-      command: build
-      projects: src/*/*.*proj
-      configuration: $(BuildConfiguration)
-      versioningScheme: byEnvVar
-      versionEnvVar: Version
-
-  - task: DotNetCoreCLI@2
-    name: dotnetTest
-    displayName: Testing implementations
-    inputs:
-      command: test
-      projects: 'tests/*/*.*proj'
+      command: 'test'
       configuration: 'Debug'
-      testRunTitle: 'Running tests'
-
-- job: Publishing
+      arguments: '--logger trx /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=$(build.artifactStagingDirectory)/coverage/ /p:MergeWith=$(build.artifactStagingDirectory)/coverage/coverage.json'
+      publishTestResults: true
+      verbosityPack: Minimal
+      verbosityRestore: Minimal
+      testRunTitle: 'Unit Tests'
+  - pwsh: |
+      ../dotnet-sonarscanner end /d:sonar.login="$(SONAR_KEY)"
+    displayName: Publish SonarCloud
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Test Coverage
+    inputs:
+      PathtoPublish: $(build.artifactStagingDirectory)/coverage
+      ArtifactName: 'coverage'
+      publishLocation: 'Container'
+  - pwsh: |
+      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --commitMessage "$(Build.SourceVersionMessage)" --jobId "$(Build.BuildId)"
+      ../codecov --token "$(CodeCovApiKey)" --file $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --branch "$(Build.SourceBranchName)" --sha "$(Build.SourceVersion)"
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    displayName: Push Coverage (commit)
+  - pwsh: |
+      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --commitMessage "$(Build.SourceVersionMessage)" --jobId "$(Build.BuildId)" --pullRequest "$(System.PullRequest.PullRequestNumber)"
+      ../codecov --token "$(CodeCovApiKey)" --file $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --branch "$(Build.SourceBranchName)" --sha "$(Build.SourceVersion)" --pr "$(System.PullRequest.PullRequestNumber)"
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    displayName: Push Coverage (PR)
+- job: Publish
   pool:
     vmImage: ubuntu-latest
   dependsOn:
-    - Setup
-    - Building
-    - Testing
-  variables:
-    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+    - Version
+    - Build
+    - Test
   steps:
   - checkout: none
-
   - task: DownloadPipelineArtifact@2
-    displayName: Downloading artifact
+    displayName: Fetch nugets
     inputs:
+      buildType: 'current'
       artifactName: 'nuget'
       targetPath: $(build.artifactStagingDirectory)/nuget
-
   - task: DotNetCoreCLI@2
-    displayName: Pushing to nuget server
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    displayName: Push Nugets
     inputs:
       workingDirectory: $(build.artifactStagingDirectory)/nuget
       command: 'custom'
-      custom: nuget
+      custom: 'nuget'
       arguments: >
         push *.nupkg
         -s $(KritikosNuget)
