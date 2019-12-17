@@ -1,0 +1,157 @@
+resources:
+  repositories:
+    - repository: self
+      checkoutOptions:
+        submodules: true
+        lfs: true
+trigger:
+  branches:
+    include:
+      - master
+      - develop
+      - feature/*
+      - bugfix/*
+  paths:
+    include:
+      - src/*
+      - tests/*
+variables:
+  - group: Environment
+
+jobs:
+- job: Setup
+  pool:
+    vmImage: windows-latest
+  steps:
+  - powershell: |
+      dotnet tool install --tool-path .. gitversion.tool
+    displayName: Installing Dotnet Tools
+
+  - powershell: |
+      $git = $(../dotnet-gitversion /output json /showvariable NugetVersion)
+      echo "##vso[task.setvariable variable=gitVersion;isOutput=true]$(../dotnet-gitversion /output json /showvariable NugetVersion)"
+    name: versioning
+    displayName: Setting version from git
+
+  - powershell: |
+      echo "Current version: $(versioning.gitVersion)"
+    displayName: Shows currently compiling version
+
+- job: Building
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn:
+    - Setup
+  variables:
+    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+  steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: DotNetCoreCLI@2
+    displayName: Restoring nugets
+    inputs:
+      command: 'restore'
+      arguments: -Project2ProjectTimeOut 20
+      verbosityRestore: Normal
+
+  - task: DotNetCoreCLI@2
+    displayName: Building Projects
+    inputs:
+      command: build
+      projects: src/*/*.csproj
+      configuration: $(BuildConfiguration)
+      arguments: -o $(build.artifactStagingDirectory)/build
+      versioningScheme: byEnvVar
+      versionEnvVar: Version
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish build artifacts
+    inputs:
+      PathtoPublish: $(build.artifactStagingDirectory)/build
+      ArtifactName: 'drop'
+
+  - task: DotNetCoreCLI@2
+    displayName: Packing as Nugets
+    inputs:
+      command: pack
+      searchPatternPack: 'src/*/*.csproj'
+      configuration: $(BuildConfiguration)
+      versioningScheme: byEnvVar
+      versionEnvVar: Version
+      verbosityPack: normal
+      packDirectory: $(build.artifactStagingDirectory)/nuget
+
+  - task: PublishBuildArtifacts@1
+    name: publishNuget
+    displayName: Publish nugets
+    inputs:
+      PathtoPublish: $(build.artifactStagingDirectory)/nuget
+      ArtifactName: 'nuget'
+
+- job: Testing
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn:
+    - Setup
+  variables:
+    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+  steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: DotNetCoreCLI@2
+    name: dotnetRestore
+    displayName: Restoring nugets
+    inputs:
+      command: 'restore'
+      arguments: -Project2ProjectTimeOut 20 --packages "$(Build.BinariesDirectory)/.nuget)
+      verbosityRestore: Normal
+
+  - task: DotNetCoreCLI@2
+    name: dotnetBuild
+    displayName: Building Projects
+    inputs:
+      command: build
+      projects: src/*/*.*proj
+      configuration: $(BuildConfiguration)
+      versioningScheme: byEnvVar
+      versionEnvVar: Version
+
+  - task: DotNetCoreCLI@2
+    name: dotnetTest
+    displayName: Testing implementations
+    inputs:
+      command: test
+      projects: 'tests/*/*.*proj'
+      configuration: 'Debug'
+      testRunTitle: 'Running tests'
+
+- job: Publishing
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn:
+    - Setup
+    - Building
+    - Testing
+  variables:
+    Version: $[ dependencies.Setup.outputs['versioning.gitVersion'] ]
+  steps:
+  - checkout: none
+
+  - task: DownloadPipelineArtifact@2
+    displayName: Downloading artifact
+    inputs:
+      artifactName: 'nuget'
+      targetPath: $(build.artifactStagingDirectory)/nuget
+
+  - task: DotNetCoreCLI@2
+    displayName: Pushing to nuget server
+    inputs:
+      workingDirectory: $(build.artifactStagingDirectory)/nuget
+      command: 'custom'
+      custom: nuget
+      arguments: >
+        push *.nupkg
+        -s $(KritikosNuget)
+        -k $(KritikosApiKey)

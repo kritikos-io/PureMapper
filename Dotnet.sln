@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29509.3
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configuration", "{0577A3E6-642A-4865-90E7-70103A1B0880}"
+	ProjectSection(SolutionItems) = preProject
+		.config\.editorconfig = .config\.editorconfig
+		.config\.gitignore = .config\.gitignore
+		azure-pipelines.yml = azure-pipelines.yml
+		.config\Directory.Build.props = .config\Directory.Build.props
+		.config\Directory.Build.targets = .config\Directory.Build.targets
+		.config\dotnet.ruleset = .config\dotnet.ruleset
+		.config\gulpfile.js = .config\gulpfile.js
+		.config\stylecop.json = .config\stylecop.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{52270E06-D3BB-4B8E-A261-377E460B5FD5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4FAAB5E4-2D81-4062-90D2-6F68DF746BD2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {51F9BF65-6DFB-4A56-AC1C-EA87B6678C8B}
+	EndGlobalSection
+EndGlobal
