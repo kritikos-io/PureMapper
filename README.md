@@ -1,8 +1,15 @@
-# Templates - Dotnet
+# PureMapper
 
-A simple template leveraging [.Config][1] dotfiles submodule  for rapid project deployment. Simply rename Solution.{code-workspace,sln,sln.DotSettings} to your project name and get started! Afterwards, replace this readme with the actual documentation of your project.
+A simple relational object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derrivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees.
 
-Additionally, until GitHub properly supports submodule definitions from template repositories, after cloning you should run
-```git submodule add https://github.com/kritikos-io/.config``` from the repository root. You can replace the submodule with a compatible fork (to preserve your own default namespace etc) **provided it keeps file naming intact** since most files are appearing as symlinks.
+## Work in progress
 
-[1]: https://github.com/kritikos-io/.config
+* reasons to prefer
+* examples
+* benchmarks
+
+## Contributors
+
+* [palladin](https://github.com/palladin), aka [@NickPalladinos](https://twitter.com/NickPalladinos), high priest of the Old Ones, providing tips and guidance in return for blood sacrifice.* [palladin](https://github.com/palladin), aka [@NickPalladinos](https://twitter.com/NickPalladinos), high priest of the Old Ones, providing tips and guidance in return for blood sacrifice.
+
+[autoMapper]: https://github.com/AutoMapper/AutoMapper
