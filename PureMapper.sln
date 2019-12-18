@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4FAAB5E4
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PureMapper", "src\PureMapper\PureMapper.csproj", "{1053194D-ACF8-4931-8AE5-5ED574EE0985}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureMapper.Tests", "tests\PureMapper.Tests\PureMapper.Tests.csproj", "{B1482228-E96B-462F-8E80-E5E106C50E01}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,12 +33,17 @@ Global
 		{1053194D-ACF8-4931-8AE5-5ED574EE0985}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1053194D-ACF8-4931-8AE5-5ED574EE0985}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1053194D-ACF8-4931-8AE5-5ED574EE0985}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1482228-E96B-462F-8E80-E5E106C50E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1482228-E96B-462F-8E80-E5E106C50E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1482228-E96B-462F-8E80-E5E106C50E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1482228-E96B-462F-8E80-E5E106C50E01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1053194D-ACF8-4931-8AE5-5ED574EE0985} = {52270E06-D3BB-4B8E-A261-377E460B5FD5}
+		{B1482228-E96B-462F-8E80-E5E106C50E01} = {4FAAB5E4-2D81-4062-90D2-6F68DF746BD2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {51F9BF65-6DFB-4A56-AC1C-EA87B6678C8B}
