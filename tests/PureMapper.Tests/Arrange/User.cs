@@ -6,7 +6,19 @@ namespace Kritikos.PureMapper.Tests.Arrange
 
 		public string Password { get; set; } = string.Empty;
 
-		public User? Knows { get; set; }
+		public Person Knows { get; set; }
+
+		public User Parent { get; set; }
+	}
+
+	public class Person
+	{
+		public string Name { get; set; }
+	}
+
+	public class PersonDto
+	{
+		public string Name { get; set; }
 	}
 
 	public class UserDto
@@ -15,6 +27,7 @@ namespace Kritikos.PureMapper.Tests.Arrange
 
 		public string HashedPassword { get; set; } = string.Empty;
 
-		public UserDto? Knows { get; set; }
+		public PersonDto Knows { get; set; }
+		public UserDto Parent { get; set; }
 	}
 }
