@@ -17,6 +17,7 @@ namespace Kritikos.PureMapper
 			public LambdaExpression OriginalExpr { get; set; }
 			public LambdaExpression SplicedExpr { get; set; }
 			public Delegate SplicedFunc { get; set; }
+			public LambdaExpression Rec { get; set; }
 
 		}
 
@@ -41,7 +42,14 @@ namespace Kritikos.PureMapper
 
 		public Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>() where TSource : class where TDestination : class
 		{
-			this.rec = (Expression<Func<TSource, TDestination>>)(x => null);
+			var key = (typeof(TSource), typeof(TDestination));
+			if (!dict.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			var mapValue = dict[key];
+			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => null);
 			return Resolve<TSource, TDestination>();
 	    }
 
@@ -54,11 +62,11 @@ namespace Kritikos.PureMapper
 			}
 
 			var mapValue = dict[key];
-			this.rec = (Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
+			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
 			return Resolve<TSource, TDestination>();
 
 		}
-		private LambdaExpression rec = null;
+		
 		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>() where TSource : class
 																					    where TDestination : class
 		{
@@ -69,14 +77,16 @@ namespace Kritikos.PureMapper
 			}
 
 			var mapValue = dict[key];
-			
-			if (visited.ContainsKey(key))
+
+			if (!visited.ContainsKey(key))
+				visited.Add(key, 0);
+
+			if (visited[key] > 1)
 			{
-				visited[key] += 1;
-				return (Expression<Func<TSource, TDestination>>)this.rec;
+				return (Expression<Func<TSource, TDestination>>)mapValue.Rec;
 			}
 
-			visited.Add(key, 0);
+			visited[key]++;
 
 			var splicer = new Splicer();
 			var splicedExpr = (LambdaExpression)splicer.Visit(mapValue.OriginalExpr);
@@ -104,11 +114,11 @@ namespace Kritikos.PureMapper
 			}
 
 			// force resolve
-			
 			foreach (var keyValue in dict)
 			{
+				var key = keyValue.Key;
 				var mapValue = keyValue.Value;
-
+				
 				MethodInfo resolve = typeof(PureMapper).GetMethod("ResolveExpr");
 				var _resolve = resolve.MakeGenericMethod(keyValue.Key.Source, keyValue.Key.Dest);
 				var lambdaExpression = (LambdaExpression)_resolve.Invoke(this, Array.Empty<object>());
@@ -119,7 +129,6 @@ namespace Kritikos.PureMapper
 				_resolve = resolve.MakeGenericMethod(keyValue.Key.Source, keyValue.Key.Dest);
 				lambdaExpression = (LambdaExpression)_resolve.Invoke(this, Array.Empty<object>());
 				mapValue.SplicedFunc = lambdaExpression.Compile();
-
 				visited.Clear();
 			}
 		}
