@@ -6,8 +6,9 @@ namespace Kritikos.PureMapper.Contracts
 
 	public interface IPureMapperConfig
 	{
-		List<(Type Source, Type Dest, Func<IPureMapper, LambdaExpression> Expr)> Maps { get; }
+		List<(Type Source, Type Dest, Func<IPureMapperResolver, LambdaExpression> Expr)> Maps { get; }
 
-		IPureMapperConfig Map<TSource, TDestination>(Func<IPureMapper, Expression<Func<TSource, TDestination>>> map);
+		IPureMapperConfig Map<TSource, TDestination>(Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map) where TSource : class
+																															 where TDestination : class;
 	}
 }

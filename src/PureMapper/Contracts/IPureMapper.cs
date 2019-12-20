@@ -5,8 +5,13 @@ namespace Kritikos.PureMapper.Contracts
 
 	public interface IPureMapper
 	{
-		Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>();
+		public TDestination Map<TSource, TDestination>(TSource source) where TSource : class
+																	   where TDestination : class;
+	}
 
-		Func<TSource, TDestination> ResolveFunc<TSource, TDestination>();
+	public interface IPureMapperResolver
+	{
+		Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>() where TSource : class
+																				 where TDestination : class;
 	}
 }
