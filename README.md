@@ -10,6 +10,6 @@ A simple relational object to object mapper, based on the awesome work done in [
 
 ## Contributors
 
-* [palladin](https://github.com/palladin), aka [@NickPalladinos](https://twitter.com/NickPalladinos), high priest of the Old Ones, providing tips and guidance in return for blood sacrifice.* [palladin](https://github.com/palladin), aka [@NickPalladinos](https://twitter.com/NickPalladinos), high priest of the Old Ones, providing tips and guidance in return for blood sacrifice.
+* [palladin](https://github.com/palladin), aka [@NickPalladinos](https://twitter.com/NickPalladinos), high priest of the Old Ones, providing tips and guidance in return for blood sacrifice.
 
 [autoMapper]: https://github.com/AutoMapper/AutoMapper
