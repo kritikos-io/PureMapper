@@ -1,3 +1,4 @@
+#nullable disable
 namespace Kritikos.PureMapper.Tests.Arrange
 {
 	public class User
@@ -28,6 +29,7 @@ namespace Kritikos.PureMapper.Tests.Arrange
 		public string HashedPassword { get; set; } = string.Empty;
 
 		public PersonDto Knows { get; set; }
+
 		public UserDto Parent { get; set; }
 	}
 }

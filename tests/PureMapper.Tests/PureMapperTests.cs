@@ -3,7 +3,7 @@ namespace Kritikos.PureMapper.Tests
 {
 	using System;
 	using System.Text;
-	using System.Text.Unicode;
+
 	using Kritikos.PureMapper.Contracts;
 	using Kritikos.PureMapper.Tests.Arrange;
 

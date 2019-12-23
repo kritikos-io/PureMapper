@@ -1,33 +1,27 @@
+#nullable disable
 namespace Kritikos.PureMapper
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using System.Reflection;
+
 	using Kritikos.PureMapper.Contracts;
 
 	using Nessos.Expressions.Splicer;
 
 	public class PureMapper : IPureMapperResolver, IPureMapper
 	{
-
-		
-		private class MapValue
-		{
-			public LambdaExpression OriginalExpr { get; set; }
-			public LambdaExpression SplicedExpr { get; set; }
-			public Delegate SplicedFunc { get; set; }
-			public LambdaExpression Rec { get; set; }
-
-		}
+		private readonly Dictionary<(Type Source, Type Dest), int> visited =
+			new Dictionary<(Type Source, Type Dest), int>();
 
 		private readonly Dictionary<(Type Source, Type Dest), MapValue> dict = new Dictionary<(Type, Type), MapValue>();
 
 		public PureMapper(IPureMapperConfig cfg)
 			=> Map(cfg?.Maps ?? throw new ArgumentNullException(nameof(cfg)));
 
-		public TDestination Map<TSource, TDestination>(TSource source) where TSource : class
-																	   where TDestination : class
+		public TDestination Map<TSource, TDestination>(TSource source)
+			where TSource : class
+			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination));
 			if (!dict.ContainsKey(key))
@@ -38,9 +32,9 @@ namespace Kritikos.PureMapper
 			return ((Func<TSource, TDestination>)dict[key].SplicedFunc).Invoke(source);
 		}
 
-		private readonly Dictionary<(Type Source, Type Dest), int> visited = new Dictionary<(Type Source, Type Dest), int>();
-
-		public Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>() where TSource : class where TDestination : class
+		public Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>()
+			where TSource : class
+			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination));
 			if (!dict.ContainsKey(key))
@@ -51,9 +45,11 @@ namespace Kritikos.PureMapper
 			var mapValue = dict[key];
 			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => null);
 			return Resolve<TSource, TDestination>();
-	    }
+		}
 
-		public Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>() where TSource : class where TDestination : class
+		public Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>()
+			where TSource : class
+			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination));
 			if (!dict.ContainsKey(key))
@@ -62,13 +58,14 @@ namespace Kritikos.PureMapper
 			}
 
 			var mapValue = dict[key];
-			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
+			mapValue.Rec =
+				(Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
 			return Resolve<TSource, TDestination>();
-
 		}
-		
-		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>() where TSource : class
-																					    where TDestination : class
+
+		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>()
+			where TSource : class
+			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination));
 			if (!dict.ContainsKey(key))
@@ -79,7 +76,9 @@ namespace Kritikos.PureMapper
 			var mapValue = dict[key];
 
 			if (!visited.ContainsKey(key))
+			{
 				visited.Add(key, 0);
+			}
 
 			if (visited[key] > 1)
 			{
@@ -118,8 +117,8 @@ namespace Kritikos.PureMapper
 			{
 				var key = keyValue.Key;
 				var mapValue = keyValue.Value;
-				
-				MethodInfo resolve = typeof(PureMapper).GetMethod("ResolveExpr");
+
+				var resolve = typeof(PureMapper).GetMethod("ResolveExpr");
 				var _resolve = resolve.MakeGenericMethod(keyValue.Key.Source, keyValue.Key.Dest);
 				var lambdaExpression = (LambdaExpression)_resolve.Invoke(this, Array.Empty<object>());
 				mapValue.SplicedExpr = lambdaExpression;
@@ -131,6 +130,17 @@ namespace Kritikos.PureMapper
 				mapValue.SplicedFunc = lambdaExpression.Compile();
 				visited.Clear();
 			}
+		}
+
+		private class MapValue
+		{
+			public LambdaExpression OriginalExpr { get; set; }
+
+			public LambdaExpression SplicedExpr { get; set; }
+
+			public Delegate SplicedFunc { get; set; }
+
+			public LambdaExpression Rec { get; set; }
 		}
 	}
 }
