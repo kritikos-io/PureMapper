@@ -80,7 +80,7 @@ namespace Kritikos.PureMapper
 				visited.Add(key, 0);
 			}
 
-			if (visited[key] > 1)
+			if (visited[key] > mapValue.RecInlineDepth)
 			{
 				return (Expression<Func<TSource, TDestination>>)mapValue.Rec;
 			}
@@ -93,14 +93,14 @@ namespace Kritikos.PureMapper
 			return (Expression<Func<TSource, TDestination>>)splicedExpr;
 		}
 
-		private void Map(List<(Type Source, Type Dest, Func<IPureMapperResolver, LambdaExpression> Map)> maps)
+		private void Map(List<(Type Source, Type Dest, Func<IPureMapperResolver, LambdaExpression> Map, int RecInlineDepth)> maps)
 		{
-			foreach (var (source, destination, map) in maps)
+			foreach (var (source, destination, map, recInlineDepth) in maps)
 			{
 				var key = (source, destination);
 				var splicer = new Splicer();
 
-				var mapValue = new MapValue { OriginalExpr = map(this) };
+				var mapValue = new MapValue { OriginalExpr = map(this), RecInlineDepth = recInlineDepth };
 
 				if (dict.ContainsKey(key))
 				{
@@ -141,6 +141,8 @@ namespace Kritikos.PureMapper
 			public Delegate SplicedFunc { get; set; }
 
 			public LambdaExpression Rec { get; set; }
+
+			public int RecInlineDepth { get; set; }
 		}
 	}
 }
