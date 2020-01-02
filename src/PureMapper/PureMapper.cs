@@ -32,6 +32,19 @@ namespace Kritikos.PureMapper
 			return ((Func<TSource, TDestination>)dict[key].SplicedFunc).Invoke(source);
 		}
 
+		public Expression<Func<TSource, TDestination>> Map<TSource, TDestination>()
+			where TSource : class
+			where TDestination : class
+		{
+			var key = (typeof(TSource), typeof(TDestination));
+			if (!dict.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			return (Expression<Func<TSource, TDestination>>)dict[key].SplicedExpr;
+		}
+
 		public Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>()
 			where TSource : class
 			where TDestination : class

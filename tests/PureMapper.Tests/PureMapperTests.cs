@@ -2,6 +2,7 @@
 namespace Kritikos.PureMapper.Tests
 {
 	using System;
+	using System.Linq;
 	using System.Text;
 
 	using Kritikos.PureMapper.Contracts;
@@ -57,6 +58,22 @@ namespace Kritikos.PureMapper.Tests
 			Assert.Equal(alex.Knows.Name, dto.Knows.Name);
 			Assert.Equal(alex.Parent.Username.ToUpperInvariant(), dto.Parent.NormalizedUsername);
 			Assert.Equal(alex.Parent.Parent.Username.ToUpperInvariant(), dto.Parent.Parent.NormalizedUsername);
+		}
+
+		[Fact]
+		public void TestProject()
+		{
+			var mapper = new PureMapper(Config(2));
+
+			var nick = new Person { Name = "npal" };
+			var john = new User { Username = "john", Password = "123test!", Knows = nick };
+			var george = new User { Username = "george", Password = "123test!", Knows = nick, Parent = john };
+			var alex = new User { Username = "akritikos", Password = "123test!", Knows = nick, Parent = george };
+
+			var users = new[] { alex, george, john };
+
+			var dtoUsers = users.AsQueryable().Project<User, UserDto>(mapper).ToArray();
+			Assert.Equal(users.Length, dtoUsers.Length);
 		}
 	}
 }
