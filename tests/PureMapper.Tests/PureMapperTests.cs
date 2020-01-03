@@ -1,12 +1,13 @@
 #nullable disable
-namespace Kritikos.PureMapper.Tests
+namespace Kritikos.PureMap.Tests
 {
 	using System;
 	using System.Linq;
 	using System.Text;
 
-	using Kritikos.PureMapper.Contracts;
-	using Kritikos.PureMapper.Tests.Arrange;
+	using Kritikos.PureMap;
+	using Kritikos.PureMap.Contracts;
+	using Kritikos.PureMap.Tests.Arrange;
 
 	using Nessos.Expressions.Splicer;
 

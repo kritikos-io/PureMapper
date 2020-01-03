@@ -1,5 +1,5 @@
 #nullable disable
-namespace Kritikos.PureMapper.Tests.Arrange
+namespace Kritikos.PureMap.Tests.Arrange
 {
 	public class User
 	{

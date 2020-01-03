@@ -1,11 +1,11 @@
 #nullable disable
-namespace Kritikos.PureMapper
+namespace Kritikos.PureMap
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 
-	using Kritikos.PureMapper.Contracts;
+	using Kritikos.PureMap.Contracts;
 
 	using Nessos.Expressions.Splicer;
 
@@ -128,18 +128,18 @@ namespace Kritikos.PureMapper
 			// force resolve
 			foreach (var keyValue in dict)
 			{
-				var key = keyValue.Key;
+				var (src, dest) = keyValue.Key;
 				var mapValue = keyValue.Value;
 
 				var resolve = typeof(PureMapper).GetMethod("ResolveExpr");
-				var _resolve = resolve.MakeGenericMethod(keyValue.Key.Source, keyValue.Key.Dest);
-				var lambdaExpression = (LambdaExpression)_resolve.Invoke(this, Array.Empty<object>());
+				var resolvedGeneric = resolve.MakeGenericMethod(src, dest);
+				var lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, Array.Empty<object>());
 				mapValue.SplicedExpr = lambdaExpression;
 				visited.Clear();
 
 				resolve = typeof(PureMapper).GetMethod("ResolveFunc");
-				_resolve = resolve.MakeGenericMethod(keyValue.Key.Source, keyValue.Key.Dest);
-				lambdaExpression = (LambdaExpression)_resolve.Invoke(this, Array.Empty<object>());
+				resolvedGeneric = resolve.MakeGenericMethod(src, dest);
+				lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, Array.Empty<object>());
 				mapValue.SplicedFunc = lambdaExpression.Compile();
 				visited.Clear();
 			}

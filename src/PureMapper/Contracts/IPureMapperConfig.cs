@@ -1,4 +1,4 @@
-namespace Kritikos.PureMapper.Contracts
+namespace Kritikos.PureMap.Contracts
 {
 	using System;
 	using System.Collections.Generic;

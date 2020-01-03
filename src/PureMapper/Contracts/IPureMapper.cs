@@ -1,8 +1,8 @@
-using System;
-using System.Linq.Expressions;
-
-namespace Kritikos.PureMapper.Contracts
+namespace Kritikos.PureMap.Contracts
 {
+	using System;
+	using System.Linq.Expressions;
+
 	public interface IPureMapper
 	{
 		TDestination Map<TSource, TDestination>(TSource source)
