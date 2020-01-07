@@ -11,11 +11,11 @@ namespace Kritikos.PureMap
 
 	public class PureMapperConfig : IPureMapperConfig
 	{
-		public List<(Type Source, Type Dest, Func<IPureMapperResolver, LambdaExpression> Expr, int RecInlineDepth)> Maps { get; }
-			= new List<(Type Source, Type Dest, Func<IPureMapperResolver, LambdaExpression> Map, int RecInlineDepth)>();
+		public List<(Type Source, Type Dest, string name, Func<IPureMapperResolver, LambdaExpression> Expr, int RecInlineDepth)> Maps { get; }
+			= new List<(Type Source, Type Dest, string name, Func<IPureMapperResolver, LambdaExpression> Map, int RecInlineDepth)>();
 
 		public IPureMapperConfig Map<TSource, TDestination>(
-			Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map, int recInlineDepth = 0)
+			Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map, int recInlineDepth = 0, string name = "")
 			where TSource : class
 			where TDestination : class
 		{
@@ -30,7 +30,7 @@ namespace Kritikos.PureMap
 				=> x => (x == null)
 					? null
 					: map(resolver).Invoke(x);
-			Maps.Add((typeof(TSource), typeof(TDestination), f, recInlineDepth));
+			Maps.Add((typeof(TSource), typeof(TDestination), name, f, recInlineDepth));
 
 			return this;
 		}
