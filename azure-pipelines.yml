@@ -98,11 +98,11 @@ jobs:
       dotnet tool install --tool-path .. Codecov.Tool
     displayName: Install Tools
   - pwsh: |
-      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.branch.name="$(Build.SourceBranchName)" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY)
+      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.exclusions="tests/**" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.branch.name="$(Build.SourceBranchName)" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY)
     condition: ne(variables['Build.Reason'], 'PullRequest')
     displayName: SonarCloud (commit)
   - pwsh: |
-      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY) /d:sonar.pullrequest.key="$(System.PullRequest.PullRequestNumber)" /d:sonar.pullrequest.branch="$(Build.SourceBranchName)" /d:sonar.pullrequest.provider="github"
+      ../dotnet-sonarscanner begin /k:"$(SONAR_PROJECT)" /v:"$(Version)" /o:"$(SONAR_ORG)" /d:sonar.host.url="$(SONAR_URL)" /d:sonar.login="$(SONAR_KEY)" /d:sonar.exclusions="tests/**" /d:sonar.cs.opencover.reportsPaths="$(build.artifactStagingDirectory)/coverage/coverage.opencover.xml" /d:sonar.github.repository="$(Build.Repository.Name)" /d:sonar.github.oauth=$(GITHUB_KEY) /d:sonar.pullrequest.key="$(System.PullRequest.PullRequestNumber)" /d:sonar.pullrequest.branch="$(Build.SourceBranchName)" /d:sonar.pullrequest.provider="github"
     condition: eq(variables['Build.Reason'], 'PullRequest')
     displayName: SonarCloud (PR)
   - task: DotNetCoreCLI@2
@@ -125,12 +125,12 @@ jobs:
       ArtifactName: 'coverage'
       publishLocation: 'Container'
   - pwsh: |
-      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --commitMessage "$(Build.SourceVersionMessage)" --jobId "$(Build.BuildId)"
+      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --jobId "$(Build.BuildId)"
       ../codecov --token "$(CodeCovApiKey)" --file $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --branch "$(Build.SourceBranchName)" --sha "$(Build.SourceVersion)"
     condition: ne(variables['Build.Reason'], 'PullRequest')
     displayName: Push Coverage (commit)
   - pwsh: |
-      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --commitMessage "$(Build.SourceVersionMessage)" --jobId "$(Build.BuildId)" --pullRequest "$(System.PullRequest.PullRequestNumber)"
+      ../csmacnz.Coveralls --repoToken "$(COVERALLS_KEY)" --opencover -i $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --useRelativePaths --commitId "$(Build.SourceVersion)" --commitBranch "$(Build.SourceBranchName)" --commitAuthor "$(Build.RequestedFor)" --commitEmail "$(Build.RequestedForEmail)" --jobId "$(Build.BuildId)" --pullRequest "$(System.PullRequest.PullRequestNumber)"
       ../codecov --token "$(CodeCovApiKey)" --file $(build.artifactStagingDirectory)/coverage/coverage.opencover.xml --branch "$(Build.SourceBranchName)" --sha "$(Build.SourceVersion)" --pr "$(System.PullRequest.PullRequestNumber)"
     condition: eq(variables['Build.Reason'], 'PullRequest')
     displayName: Push Coverage (PR)
@@ -150,8 +150,8 @@ jobs:
       artifactName: 'nuget'
       targetPath: $(build.artifactStagingDirectory)/nuget
   - task: DotNetCoreCLI@2
-    condition: ne(variables['Build.Reason'], 'PullRequest')
-    displayName: Push Nugets
+    condition: and(ne(variables['Build.Reason'], 'PullRequest'), ne(variables['Build.SourceBranch'], 'refs/heads/master'))
+    displayName: Push Nugets to Private Feed
     inputs:
       workingDirectory: $(build.artifactStagingDirectory)/nuget
       command: 'custom'
@@ -160,3 +160,14 @@ jobs:
         push *.nupkg
         -s $(KritikosNuget)
         -k $(KritikosApiKey)
+  - task: DotNetCoreCLI@2
+    condition: and(ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    displayName: Push Nugets to NuGet.org
+    inputs:
+      workingDirectory: $(build.artifactStagingDirectory)/nuget
+      command: 'custom'
+      custom: 'nuget'
+      arguments: >
+        push *.nupkg
+        -s $(NugetOrgUri)
+        -k $(NugetApiKey)
