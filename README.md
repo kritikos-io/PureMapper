@@ -8,7 +8,7 @@
 ![GitHub language count](https://img.shields.io/github/languages/count/kritikos-io/PureMapper)
 ![GitHub top language](https://img.shields.io/github/languages/top/kritikos-io/PureMapper)
 
-A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derrivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
+A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
 
 ## Usage
 
