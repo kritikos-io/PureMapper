@@ -12,7 +12,6 @@ namespace Kritikos.PureMap.Benchmarks
 	using BenchmarkDotNet.Horology;
 	using BenchmarkDotNet.Jobs;
 	using BenchmarkDotNet.Reports;
-	using BenchmarkDotNet.Running;
 	using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 	using Kritikos.PureMap.Benchmarks.Entity;
@@ -31,11 +30,11 @@ namespace Kritikos.PureMap.Benchmarks
 	using Serilog.Extensions.Logging;
 	using Serilog.Sinks.SystemConsole.Themes;
 
-	public class Program
+	public sealed class Program
 	{
-		private static ILoggerFactory loggerFactory = null;
+		private static ILoggerFactory? loggerFactory;
 
-		public static async Task Main(string[] args)
+		public static async Task Main()
 		{
 			var logger = new LoggerConfiguration()
 				.Enrich.FromLogContext()
@@ -56,7 +55,8 @@ namespace Kritikos.PureMap.Benchmarks
 				CsvSeparator.CurrentCulture,
 				new SummaryStyle(true, SizeUnit.KB, TimeUnit.Millisecond, false, false, 20)));
 			config.Add(Job.ShortRun.With(InProcessEmitToolchain.Instance));
-			//var summary = BenchmarkRunner.Run<PureBenchmark>(config);
+
+			// var summary = BenchmarkRunner.Run<PureBenchmark>(config);
 			try
 			{
 				await DatabaseTest();
@@ -64,6 +64,7 @@ namespace Kritikos.PureMap.Benchmarks
 			catch (Exception e)
 			{
 				Log.Fatal(e, "ERROR");
+				throw;
 			}
 		}
 
@@ -72,24 +73,25 @@ namespace Kritikos.PureMap.Benchmarks
 			var bench = new PureBenchmark();
 			bench.Setup();
 			var db = Environment.GetEnvironmentVariable("PGSQL_DOTNET");
-			var postgres = DefaultContextBuilder
+			var postgres = DefaultContextBuilder()
 				.UseSqlServer(@"Data Source=(LocalDb)\MSSQLLocalDB;Initial Catalog=Mapper");
-			var ctx = new MapperTestsContext(postgres.Options);
+#pragma warning disable CA2000 // await using takes care of it
+			await using var ctx = new MapperTestsContext(postgres.Options);
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
 			var pureMapper = await ctx.People
-				//.Include(x => x.Parent)
 				.OrderByDescending(x => x.Id)
 				.Project<Person, PersonDto>(bench.PureMapper)
 				.FirstOrDefaultAsync();
 
 			var autoMapper = await ctx.People
-				.Include(x=>x.Parent)
+				.Include(x => x.Parent)
 				.OrderByDescending(x => x.Id)
 				.ProjectTo<PersonDto>(bench.AutoMapperConfiguration)
 				.FirstOrDefaultAsync();
 		}
 
-		private static DbContextOptionsBuilder<MapperTestsContext> DefaultContextBuilder =>
+		private static DbContextOptionsBuilder<MapperTestsContext> DefaultContextBuilder() =>
 			new DbContextOptionsBuilder<MapperTestsContext>()
 				.EnableDetailedErrors()
 				.EnableSensitiveDataLogging()

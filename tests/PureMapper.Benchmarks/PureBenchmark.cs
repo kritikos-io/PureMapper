@@ -1,3 +1,4 @@
+#nullable disable
 namespace Kritikos.PureMap.Benchmarks
 {
 	using System.Collections.Generic;
@@ -18,21 +19,22 @@ namespace Kritikos.PureMap.Benchmarks
 	public class PureBenchmark
 	{
 		[Params(1000, 10000)]
-		public int NumberOfIterations;
+		public int NumberOfIterations { get; set; }
 
-		internal Person Person;
+		internal Person Person { get; set; }
 
-		internal PureMapper PureMapper;
+		internal PureMapper PureMapper { get; set; }
 
-		internal IMapper? AutoMapper;
-		internal IConfigurationProvider AutoMapperConfiguration;
+		internal IMapper AutoMapper { get; set; }
+
+		internal IConfigurationProvider AutoMapperConfiguration { get; set; }
 
 		[GlobalSetup]
 		public void Setup()
 		{
 			var people = new List<Person>();
 			using var file = new StreamReader("RandomNames.txt");
-			string? line;
+			string line;
 			while ((line = file.ReadLine()) != null)
 			{
 				var split = line.Split(' ');

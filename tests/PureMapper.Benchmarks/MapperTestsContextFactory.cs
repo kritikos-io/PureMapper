@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Kritikos.PureMap.Benchmarks
 {
 	using Kritikos.PureMapper.Persistence;
@@ -22,7 +18,7 @@ namespace Kritikos.PureMap.Benchmarks
 					.Log((RelationalEventId.CommandExecuting, LogLevel.Information))
 					.Ignore(CoreEventId.SensitiveDataLoggingEnabledWarning))
 
-				//.UseNpgsql(Environment.GetEnvironmentVariable("PGSQL_DOTNET"));
+				// .UseNpgsql(Environment.GetEnvironmentVariable("PGSQL_DOTNET"));
 				.UseSqlServer(@"Data Source=(LocalDb)\MSSQLLocalDB;Initial Catalog=Mapper");
 
 			return new MapperTestsContext(options.Options);
