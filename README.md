@@ -1,5 +1,14 @@
 # PureMapper
 
+[![Build Status](https://dev.azure.com/kritikos/DotNet%20Libaries/_apis/build/status/kritikos-io.PureMapper?branchName=master)](https://dev.azure.com/kritikos/DotNet%20Libaries/_build/latest?definitionId=13&branchName=master)
+![Nuget](https://img.shields.io/nuget/v/Kritikos.PureMapper)
+[![codecov](https://codecov.io/gh/kritikos-io/PureMapper/branch/master/graph/badge.svg)](https://codecov.io/gh/kritikos-io/PureMapper)
+[![Coverage Status](https://coveralls.io/repos/github/kritikos-io/PureMapper/badge.svg?branch=master)](https://coveralls.io/github/kritikos-io/PureMapper?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kritikos-io_PureMapper&metric=alert_status)](https://sonarcloud.io/dashboard?id=kritikos-io_PureMapper)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![GitHub language count](https://img.shields.io/github/languages/count/kritikos-io/PureMapper)
+![GitHub top language](https://img.shields.io/github/languages/top/kritikos-io/PureMapper)
+
 A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derrivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
 
 ## Usage
