@@ -34,6 +34,11 @@ namespace Kritikos.PureMap
 			return ((Func<TSource, TDestination>)dict[key].SplicedFunc).Invoke(source);
 		}
 
+		public TDestination Map<TSource, TDestination>(TSource source, TDestination destination, string name = "")
+		{
+			throw new NotImplementedException("Under construction");
+		}
+
 		public Expression<Func<TSource, TDestination>> Map<TSource, TDestination>(string name = "")
 			where TSource : class
 			where TDestination : class
@@ -82,7 +87,9 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)splicedExpr;
 		}
 
+#pragma warning disable IDE0051 // Used by reflection
 		private Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>(string name = "")
+#pragma warning restore IDE0051 // Remove unused private members
 			where TSource : class
 			where TDestination : class
 		{
@@ -97,6 +104,7 @@ namespace Kritikos.PureMap
 			return Resolve<TSource, TDestination>(name);
 		}
 
+#pragma warning disable IDE0051 // Used by reflection
 		private Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>(string name = "")
 			where TSource : class
 			where TDestination : class
