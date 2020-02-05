@@ -1,7 +1,6 @@
 namespace Kritikos.PureMap.Contracts
 {
 	using System;
-	using System.Diagnostics;
 	using System.Linq.Expressions;
 
 	public interface IPureMapper
