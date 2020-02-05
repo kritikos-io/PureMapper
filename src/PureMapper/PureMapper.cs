@@ -47,37 +47,6 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)dict[key].SplicedExpr;
 		}
 
-		private Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>(string name = "")
-			where TSource : class
-			where TDestination : class
-		{
-			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
-			{
-				throw new KeyNotFoundException($"{key}");
-			}
-
-			var mapValue = dict[key];
-			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => null);
-			return Resolve<TSource, TDestination>(name);
-		}
-
-		private Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>(string name = "")
-			where TSource : class
-			where TDestination : class
-		{
-			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
-			{
-				throw new KeyNotFoundException($"{key}");
-			}
-
-			var mapValue = dict[key];
-			mapValue.Rec =
-				(Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
-			return Resolve<TSource, TDestination>(name);
-		}
-
 		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>()
 			where TSource : class
 			where TDestination : class
@@ -113,6 +82,37 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)splicedExpr;
 		}
 
+		private Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>(string name = "")
+			where TSource : class
+			where TDestination : class
+		{
+			var key = (typeof(TSource), typeof(TDestination), name);
+			if (!dict.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			var mapValue = dict[key];
+			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => null);
+			return Resolve<TSource, TDestination>(name);
+		}
+
+		private Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>(string name = "")
+			where TSource : class
+			where TDestination : class
+		{
+			var key = (typeof(TSource), typeof(TDestination), name);
+			if (!dict.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			var mapValue = dict[key];
+			mapValue.Rec =
+				(Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
+			return Resolve<TSource, TDestination>(name);
+		}
+
 		private void Map(
 			List<(Type Source, Type Dest, string Name, Func<IPureMapperResolver, LambdaExpression> Map, int
 				RecInlineDepth)> maps)
@@ -120,7 +120,6 @@ namespace Kritikos.PureMap
 			foreach (var (source, destination, name, map, recInlineDepth) in maps)
 			{
 				var key = (source, destination, name);
-				var splicer = new Splicer();
 
 				var mapValue = new MapValue { OriginalExpr = map(this), RecInlineDepth = recInlineDepth };
 
