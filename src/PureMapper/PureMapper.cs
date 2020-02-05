@@ -4,6 +4,7 @@ namespace Kritikos.PureMap
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
+	using System.Reflection;
 
 	using Kritikos.PureMap.Contracts;
 
@@ -46,7 +47,7 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)dict[key].SplicedExpr;
 		}
 
-		public Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>(string name = "")
+		private Expression<Func<TSource, TDestination>> ResolveExpr<TSource, TDestination>(string name = "")
 			where TSource : class
 			where TDestination : class
 		{
@@ -61,7 +62,7 @@ namespace Kritikos.PureMap
 			return Resolve<TSource, TDestination>(name);
 		}
 
-		public Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>(string name = "")
+		private Expression<Func<TSource, TDestination>> ResolveFunc<TSource, TDestination>(string name = "")
 			where TSource : class
 			where TDestination : class
 		{
@@ -139,13 +140,13 @@ namespace Kritikos.PureMap
 				var (src, dest, name) = keyValue.Key;
 				var mapValue = keyValue.Value;
 
-				var resolve = typeof(PureMapper).GetMethod("ResolveExpr");
+				var resolve = this.GetType().GetTypeInfo().GetDeclaredMethod("ResolveExpr");
 				var resolvedGeneric = resolve.MakeGenericMethod(src, dest);
 				var lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, new object[] { name });
 				mapValue.SplicedExpr = lambdaExpression;
 				visited.Clear();
 
-				resolve = typeof(PureMapper).GetMethod("ResolveFunc");
+				resolve = this.GetType().GetTypeInfo().GetDeclaredMethod("ResolveFunc");
 				resolvedGeneric = resolve.MakeGenericMethod(src, dest);
 				lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, new object[] { name });
 				mapValue.SplicedFunc = lambdaExpression.Compile();
