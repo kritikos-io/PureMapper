@@ -33,6 +33,34 @@ var dto = mapper.Map<User, UserDto>(user);
 
 ## Advanced Features
 
+### Updating Existing Objects
+
+```csharp
+var cfg = new PureMapperConfig()
+  .Map<Person, PersonDto>(m => (source, dest) => UpdatePerson(source.Name, dest));
+
+  [...]
+
+private static PersonDto UpdatePerson(string Name, PersonDto destination)
+  {
+    destination.Name = Name.ToUpperInvariant();
+    return destination;
+  }
+```
+
+Use the Map overload allowing for ```Func<TSource,TDestination,TDestination>``` mappings, provide a private function to get around the inability of expression trees to contain assigment statements and you are ready to go:
+
+```csharp
+var nick = new Person{Name = "npal"};
+var dto = mapper.Map<Person,PersonDto>(nick,"upper");
+nick.Name = "Nikos Palladinos";
+mapper.Map(nick, dto);
+```
+
+The same overloads are supported, as well as the capability to use [named maps](#named-maps).
+
+### Dealing with recursion
+
 ```csharp
 IPureMapperConfig Map<TSource, TDestination>(
   Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map,
@@ -40,15 +68,15 @@ IPureMapperConfig Map<TSource, TDestination>(
   string name = "")
 ```
 
-### Resolving complex objects
+#### Resolving complex objects
 
 Mapping syntax includes ```IPureMapperResolver``` allowing the usage of other maps in each definition. This allows cascading maps, that change all user created instances to their respective mapped objects in a single trip, and provides additional value during projections.
 
-### Recursion Depth
+#### Recursion Depth
 
-Recursive properties are resolved by unrolling, and as such the recursion depth (recInlineDepth) is required in such scenarios. Only one recursion depth can be specified per map, even when multiple recursive properties exist, but in return the generated tree can work even in databases. Use named maps to create different  profiles if using this feature, since recursion unrolling adds inner joins **even when not included in the query**.
+Recursive properties are resolved by unrolling, and as such the recursion depth (recInlineDepth) is required in such scenarios. Only one recursion depth can be specified per map, even when multiple recursive properties exist, but in return the generated tree can work even in databases. Use [named maps](#named-maps) to create different profiles if using this feature, since recursion unrolling adds inner joins **even when not included in the query**.
 
-### Named Maps
+#### Named Maps
 
 PureMapper supports multiple mapping profiles for the same source/destination types by using profile names. As such, on recursive properties, numerous profiles can be defined to limit inner joins for projection, a variety of maps could be used to tailor DTOs to the needs of each view and so on.
 
