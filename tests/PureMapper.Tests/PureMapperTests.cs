@@ -25,7 +25,14 @@ namespace Kritikos.PureMap.Tests
 					Parent = m.Resolve<User, UserDto>().Invoke(u.Parent),
 				}, recInlineDepth)
 				.Map<Person, PersonDto>(m => p => new PersonDto { Name = p.Name, }, recInlineDepth, string.Empty)
-				.Map<Person, PersonDto>(m => p => new PersonDto { Name = p.Name.ToUpperInvariant(), }, 0, "upper");
+				.Map<Person, PersonDto>(m => p => new PersonDto { Name = p.Name.ToUpperInvariant(), }, 0, "upper")
+				.Map<Person, PersonDto>(m => (source, dest) => UpdatePerson(source.Name, dest));
+
+		private static PersonDto UpdatePerson(string Name, PersonDto destination)
+		{
+			destination.Name = Name.ToUpperInvariant();
+			return destination;
+		} 
 
         [Fact]
         public void TestRecMapping()
@@ -85,6 +92,22 @@ namespace Kritikos.PureMap.Tests
 
 			var dtoUsers = users.AsQueryable().Project<User, UserDto>(mapper).ToArray();
 			Assert.Equal(users.Length, dtoUsers.Length);
+		}
+
+		[Fact]
+		public void TestUpdateValues()
+		{
+			var mapper = new PureMapper(Config(2));
+
+			var nick = new Person{Name = "npal"};
+
+			var dto = mapper.Map<Person,PersonDto>(nick,"upper");
+			Assert.Equal(nick.Name.ToUpperInvariant(), dto.Name);
+
+			nick.Name = "Nikos Palladinos";
+			mapper.Map(nick, dto);
+
+			Assert.Equal(nick.Name.ToUpperInvariant(), dto.Name);
 		}
 	}
 }

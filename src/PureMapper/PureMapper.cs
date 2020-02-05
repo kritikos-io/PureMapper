@@ -3,6 +3,7 @@ namespace Kritikos.PureMap
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq.Expressions;
 	using System.Reflection;
 
@@ -10,33 +11,55 @@ namespace Kritikos.PureMap
 
 	using Nessos.Expressions.Splicer;
 
-	public class PureMapper : IPureMapperResolver, IPureMapper
+	public class PureMapper : IPureMapperUpdateResolver, IPureMapperResolver, IPureMapper
 	{
-		private readonly Dictionary<(Type Source, Type Dest, string Name), int> visited =
+		private readonly Dictionary<(Type Source, Type Dest, string Name), int> visitedMappings =
 			new Dictionary<(Type Source, Type Dest, string Name), int>();
 
-		private readonly Dictionary<(Type Source, Type Dest, string Name), MapValue> dict
+		private readonly Dictionary<(Type Source, Type Dest, string Name), MapValue> mappings
 			= new Dictionary<(Type Source, Type Dest, string Name), MapValue>();
 
+		private readonly Dictionary<(Type Source, Type Dest, string Name), int> visitedUpdateMappings =
+			new Dictionary<(Type Source, Type Dest, string Name), int>();
+
+		private readonly Dictionary<(Type Source, Type Dest, string Name), UpdateValue> updateMappings
+			= new Dictionary<(Type Source, Type Dest, string Name), UpdateValue>();
+
 		public PureMapper(IPureMapperConfig cfg)
-			=> Map(cfg?.Maps ?? throw new ArgumentNullException(nameof(cfg)));
+		{
+			if (cfg == null)
+			{
+				throw new ArgumentNullException(nameof(cfg));
+			}
+
+			RegisterMappings(cfg.Maps);
+			RegisterUpdateMappings(cfg.UpdateMaps);
+		}
 
 		public TDestination Map<TSource, TDestination>(TSource source, string name = "")
 			where TSource : class
 			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
+			if (!mappings.ContainsKey(key))
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
 
-			return ((Func<TSource, TDestination>)dict[key].SplicedFunc).Invoke(source);
+			return ((Func<TSource, TDestination>)mappings[key].SplicedFunc).Invoke(source);
 		}
 
 		public TDestination Map<TSource, TDestination>(TSource source, TDestination destination, string name = "")
 		{
-			throw new NotImplementedException("Under construction");
+			var key = (typeof(TSource), typeof(TDestination), name);
+			if (!updateMappings.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			return ((Func<TSource, TDestination, TDestination>)updateMappings[key].SplicedFunc).Invoke(
+				source,
+				destination);
 		}
 
 		public Expression<Func<TSource, TDestination>> Map<TSource, TDestination>(string name = "")
@@ -44,47 +67,75 @@ namespace Kritikos.PureMap
 			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
+			if (!mappings.ContainsKey(key))
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
 
-			return (Expression<Func<TSource, TDestination>>)dict[key].SplicedExpr;
+			return (Expression<Func<TSource, TDestination>>)mappings[key].SplicedExpr;
 		}
 
-		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>()
+		Expression<Func<TSource, TDestination>> IPureMapperResolver.Resolve<TSource, TDestination>()
 			where TSource : class
 			where TDestination : class
-			=> Resolve<TSource, TDestination>(string.Empty);
+			=> ((IPureMapperResolver)this).Resolve<TSource, TDestination>(string.Empty);
 
-		public Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>(string name)
+		Expression<Func<TSource, TDestination>> IPureMapperResolver.Resolve<TSource, TDestination>(string name)
 			where TSource : class
 			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
+			if (!mappings.ContainsKey(key))
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
 
-			var mapValue = dict[key];
+			var mapValue = mappings[key];
 
-			if (!visited.ContainsKey(key))
+			if (!visitedMappings.ContainsKey(key))
 			{
-				visited.Add(key, 0);
+				visitedMappings.Add(key, 0);
 			}
 
-			if (visited[key] > mapValue.RecInlineDepth)
+			if (visitedMappings[key] > mapValue.RecInlineDepth)
 			{
 				return (Expression<Func<TSource, TDestination>>)mapValue.Rec;
 			}
 
-			visited[key]++;
+			visitedMappings[key]++;
 
 			var splicer = new Splicer();
 			var splicedExpr = (LambdaExpression)splicer.Visit(mapValue.OriginalExpr);
 
 			return (Expression<Func<TSource, TDestination>>)splicedExpr;
+		}
+
+		Expression<Func<TSource, TDestination, TDestination>> IPureMapperUpdateResolver.
+			Resolve<TSource, TDestination>()
+			=> ((IPureMapperUpdateResolver)this).Resolve<TSource, TDestination>(string.Empty);
+
+		Expression<Func<TSource, TDestination, TDestination>> IPureMapperUpdateResolver.Resolve<TSource, TDestination>(
+			string name)
+		{
+			var key = (typeof(TSource), typeof(TDestination), name);
+			if (!updateMappings.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			var updateValue = updateMappings[key];
+
+			if (!visitedUpdateMappings.ContainsKey(key))
+			{
+				visitedUpdateMappings.Add(key, 0);
+			}
+
+			visitedUpdateMappings[key]++;
+
+			var splicer = new Splicer();
+			var splicedExpr = (LambdaExpression)splicer.Visit(updateValue.OriginalExpr);
+
+			return (Expression<Func<TSource, TDestination, TDestination>>)splicedExpr;
 		}
 
 #pragma warning disable IDE0051 // Used by reflection
@@ -94,14 +145,14 @@ namespace Kritikos.PureMap
 			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
+			if (!mappings.ContainsKey(key))
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
 
-			var mapValue = dict[key];
+			var mapValue = mappings[key];
 			mapValue.Rec = (Expression<Func<TSource, TDestination>>)(x => null);
-			return Resolve<TSource, TDestination>(name);
+			return ((IPureMapperResolver)this).Resolve<TSource, TDestination>(name);
 		}
 
 #pragma warning disable IDE0051 // Used by reflection
@@ -110,18 +161,33 @@ namespace Kritikos.PureMap
 			where TDestination : class
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
-			if (!dict.ContainsKey(key))
+			if (!mappings.ContainsKey(key))
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
 
-			var mapValue = dict[key];
+			var mapValue = mappings[key];
 			mapValue.Rec =
 				(Expression<Func<TSource, TDestination>>)(x => ((Func<TSource, TDestination>)mapValue.SplicedFunc)(x));
-			return Resolve<TSource, TDestination>(name);
+			return ((IPureMapperResolver)this).Resolve<TSource, TDestination>(name);
 		}
 
-		private void Map(
+#pragma warning disable IDE0051 // Used by reflection
+		private Expression<Func<TSource, TDestination, TDestination>> ResolveUpdateFunc<TSource, TDestination>(
+			string name = "")
+			where TSource : class
+			where TDestination : class
+		{
+			var key = (typeof(TSource), typeof(TDestination), name);
+			if (!updateMappings.ContainsKey(key))
+			{
+				throw new KeyNotFoundException($"{key}");
+			}
+
+			return ((IPureMapperUpdateResolver)this).Resolve<TSource, TDestination>(name);
+		}
+
+		private void RegisterMappings(
 			List<(Type Source, Type Dest, string Name, Func<IPureMapperResolver, LambdaExpression> Map, int
 				RecInlineDepth)> maps)
 		{
@@ -131,18 +197,18 @@ namespace Kritikos.PureMap
 
 				var mapValue = new MapValue { OriginalExpr = map(this), RecInlineDepth = recInlineDepth };
 
-				if (dict.ContainsKey(key))
+				if (mappings.ContainsKey(key))
 				{
-					dict[key] = mapValue;
+					mappings[key] = mapValue;
 				}
 				else
 				{
-					dict.Add(key, mapValue);
+					mappings.Add(key, mapValue);
 				}
 			}
 
 			// force resolve
-			foreach (var keyValue in dict)
+			foreach (var keyValue in mappings)
 			{
 				var (src, dest, name) = keyValue.Key;
 				var mapValue = keyValue.Value;
@@ -151,13 +217,47 @@ namespace Kritikos.PureMap
 				var resolvedGeneric = resolve.MakeGenericMethod(src, dest);
 				var lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, new object[] { name });
 				mapValue.SplicedExpr = lambdaExpression;
-				visited.Clear();
+				visitedMappings.Clear();
 
 				resolve = this.GetType().GetTypeInfo().GetDeclaredMethod("ResolveFunc");
 				resolvedGeneric = resolve.MakeGenericMethod(src, dest);
 				lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, new object[] { name });
 				mapValue.SplicedFunc = lambdaExpression.Compile();
-				visited.Clear();
+				visitedMappings.Clear();
+			}
+		}
+
+		private void RegisterUpdateMappings(
+			List<(Type Source, Type Dest, string name, Func<IPureMapperUpdateResolver, LambdaExpression> Expr, int
+				reclineDepth)> maps)
+		{
+			foreach (var (source, destination, name, map, recInlineDepth) in maps)
+			{
+				var key = (source, destination, name);
+
+				var updateValue = new UpdateValue { OriginalExpr = map(this), RecInlineDepth = recInlineDepth };
+
+				if (updateMappings.ContainsKey(key))
+				{
+					updateMappings[key] = updateValue;
+				}
+				else
+				{
+					updateMappings.Add(key, updateValue);
+				}
+			}
+
+			// force resolve
+			foreach (var keyValue in updateMappings)
+			{
+				var (src, dest, name) = keyValue.Key;
+				var updateValue = keyValue.Value;
+
+				var resolve = this.GetType().GetTypeInfo().GetDeclaredMethod("ResolveUpdateFunc");
+				var resolvedGeneric = resolve.MakeGenericMethod(src, dest);
+				var lambdaExpression = (LambdaExpression)resolvedGeneric.Invoke(this, new object[] { name });
+				updateValue.SplicedFunc = lambdaExpression.Compile();
+				visitedMappings.Clear();
 			}
 		}
 
@@ -170,6 +270,15 @@ namespace Kritikos.PureMap
 			public Delegate SplicedFunc { get; set; }
 
 			public LambdaExpression Rec { get; set; }
+
+			public int RecInlineDepth { get; set; }
+		}
+
+		private class UpdateValue
+		{
+			public LambdaExpression OriginalExpr { get; set; }
+
+			public Delegate SplicedFunc { get; set; }
 
 			public int RecInlineDepth { get; set; }
 		}
