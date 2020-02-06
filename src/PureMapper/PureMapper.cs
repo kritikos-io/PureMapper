@@ -129,6 +129,11 @@ namespace Kritikos.PureMap
 				visitedUpdateMappings.Add(key, 0);
 			}
 
+			if (visitedUpdateMappings[key] > updateValue.RecInlineDepth)
+			{
+				return (Expression<Func<TSource, TDestination, TDestination>>)updateValue.Rec;
+			}
+
 			visitedUpdateMappings[key]++;
 
 			var splicer = new Splicer();
@@ -182,6 +187,10 @@ namespace Kritikos.PureMap
 			{
 				throw new KeyNotFoundException($"{key}");
 			}
+
+			var updateValue = updateMappings[key];
+			updateValue.Rec = (Expression<Func<TSource, TDestination, TDestination>>)((x, y) =>
+				((Func<TSource, TDestination, TDestination>)updateValue.SplicedFunc)(x, y));
 
 			return ((IPureMapperUpdateResolver)this).Resolve<TSource, TDestination>(name);
 		}
@@ -278,6 +287,8 @@ namespace Kritikos.PureMap
 			public LambdaExpression OriginalExpr { get; set; }
 
 			public Delegate SplicedFunc { get; set; }
+
+			public LambdaExpression Rec { get; set; }
 
 			public int RecInlineDepth { get; set; }
 		}
