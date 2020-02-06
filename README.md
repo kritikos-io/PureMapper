@@ -66,6 +66,26 @@ nick.Name = "Nikos Palladinos";
 mapper.Map(nick, dto);
 ```
 
+To map nested object structures (*extreme caution advised*), resolve needed maps from IPureMapperUpdateResolver:
+
+```csharp
+var cfg = new PureMapperConfig()
+  .Map<User, UserDto>(m => (source, dest) =>
+    UpdateUser(source.Username, source.Password,
+      m.Resolve<User, UserDto>().Invoke(source.Parent, dest.Parent), dest)
+  );
+
+[...]
+
+public static UserDto UpdateUser(string Name, string Pass, UserDto Parent, UserDto destination)
+{
+  destination.NormalizedUsername = Name.ToUpperInvariant();
+  destination.Parent = Parent;
+  destination.HashedPassword = Convert.ToBase64String(Encoding.UTF8.GetBytes(Pass));
+  return destination;
+}
+```
+
 The same overloads are supported, as well as the capability to use [named maps](#named-maps).
 
 ### Dealing with recursion
