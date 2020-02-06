@@ -8,5 +8,9 @@ namespace Kritikos.PureMap.Contracts
 		Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>()
 			where TSource : class
 			where TDestination : class;
+
+		Expression<Func<TSource, TDestination>> Resolve<TSource, TDestination>(string name)
+			where TSource : class
+			where TDestination : class;
 	}
 }

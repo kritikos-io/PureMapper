@@ -1,5 +1,14 @@
 # PureMapper
 
+[![Build Status](https://dev.azure.com/kritikos/DotNet%20Libaries/_apis/build/status/kritikos-io.PureMapper?branchName=master)](https://dev.azure.com/kritikos/DotNet%20Libaries/_build/latest?definitionId=13&branchName=master)
+![Nuget](https://img.shields.io/nuget/v/Kritikos.PureMapper)
+[![codecov](https://codecov.io/gh/kritikos-io/PureMapper/branch/master/graph/badge.svg)](https://codecov.io/gh/kritikos-io/PureMapper)
+[![Coverage Status](https://coveralls.io/repos/github/kritikos-io/PureMapper/badge.svg?branch=master)](https://coveralls.io/github/kritikos-io/PureMapper?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kritikos-io_PureMapper&metric=alert_status)](https://sonarcloud.io/dashboard?id=kritikos-io_PureMapper)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![GitHub language count](https://img.shields.io/github/languages/count/kritikos-io/PureMapper)
+![GitHub top language](https://img.shields.io/github/languages/top/kritikos-io/PureMapper)
+
 A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derrivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
 
 ## Usage
@@ -33,6 +42,54 @@ var dto = mapper.Map<User, UserDto>(user);
 
 ## Advanced Features
 
+### Updating Existing Objects
+
+```csharp
+var cfg = new PureMapperConfig()
+  .Map<Person, PersonDto>(m => (source, dest) => UpdatePerson(source.Name, dest));
+
+  [...]
+
+private static PersonDto UpdatePerson(string Name, PersonDto destination)
+  {
+    destination.Name = Name.ToUpperInvariant();
+    return destination;
+  }
+```
+
+Use the Map overload allowing for ```Func<TSource,TDestination,TDestination>``` mappings, provide a private function to get around the inability of expression trees to contain assigment statements and you are ready to go:
+
+```csharp
+var nick = new Person{Name = "npal"};
+var dto = mapper.Map<Person,PersonDto>(nick,"upper");
+nick.Name = "Nikos Palladinos";
+mapper.Map(nick, dto);
+```
+
+To map nested object structures (*extreme caution advised*), resolve needed maps from IPureMapperUpdateResolver:
+
+```csharp
+var cfg = new PureMapperConfig()
+  .Map<User, UserDto>(m => (source, dest) =>
+    UpdateUser(source.Username, source.Password,
+      m.Resolve<User, UserDto>().Invoke(source.Parent, dest.Parent), dest)
+  );
+
+[...]
+
+public static UserDto UpdateUser(string Name, string Pass, UserDto Parent, UserDto destination)
+{
+  destination.NormalizedUsername = Name.ToUpperInvariant();
+  destination.Parent = Parent;
+  destination.HashedPassword = Convert.ToBase64String(Encoding.UTF8.GetBytes(Pass));
+  return destination;
+}
+```
+
+The same overloads are supported, as well as the capability to use [named maps](#named-maps).
+
+### Dealing with recursion
+
 ```csharp
 IPureMapperConfig Map<TSource, TDestination>(
   Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map,
@@ -40,15 +97,15 @@ IPureMapperConfig Map<TSource, TDestination>(
   string name = "")
 ```
 
-### Resolving complex objects
+#### Resolving complex objects
 
 Mapping syntax includes ```IPureMapperResolver``` allowing the usage of other maps in each definition. This allows cascading maps, that change all user created instances to their respective mapped objects in a single trip, and provides additional value during projections.
 
-### Recursion Depth
+#### Recursion Depth
 
-Recursive properties are resolved by unrolling, and as such the recursion depth (recInlineDepth) is required in such scenarios. Only one recursion depth can be specified per map, even when multiple recursive properties exist, but in return the generated tree can work even in databases. Use named maps to create different  profiles if using this feature, since recursion unrolling adds inner joins **even when not included in the query**.
+Recursive properties are resolved by unrolling, and as such the recursion depth (recInlineDepth) is required in such scenarios. Only one recursion depth can be specified per map, even when multiple recursive properties exist, but in return the generated tree can work even in databases. Use [named maps](#named-maps) to create different profiles if using this feature, since recursion unrolling adds inner joins **even when not included in the query**.
 
-### Named Maps
+#### Named Maps
 
 PureMapper supports multiple mapping profiles for the same source/destination types by using profile names. As such, on recursive properties, numerous profiles can be defined to limit inner joins for projection, a variety of maps could be used to tailor DTOs to the needs of each view and so on.
 
