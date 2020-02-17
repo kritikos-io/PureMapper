@@ -5,14 +5,15 @@ namespace Kritikos.PureMap
 
 	using Kritikos.PureMap.Contracts;
 
-	public static class Querable
+	public static class Queryable
 	{
 		public static IQueryable<TDestination> Project<TSource, TDestination>(
 			this IQueryable<TSource> source,
-			IPureMapper mapper)
+			IPureMapper mapper,
+			string mapName = "")
 			where TSource : class
 			where TDestination : class
-			=> source.Select(mapper?.Map<TSource, TDestination>()
+			=> source.Select(mapper?.Map<TSource, TDestination>(mapName)
 							?? throw new ArgumentNullException(nameof(mapper)));
 	}
 }
