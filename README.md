@@ -9,7 +9,7 @@
 ![GitHub language count](https://img.shields.io/github/languages/count/kritikos-io/PureMapper)
 ![GitHub top language](https://img.shields.io/github/languages/top/kritikos-io/PureMapper)
 
-A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derrivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
+A simple object to object mapper, based on the awesome work done in [AutoMapper][autoMapper]. This is a rather opinionated derivative, foregoing the usage of reflection and implicit conventions in favor of verbose expression trees. This allows direct usage by anything that can handle expression trees, from in memory representations to Entity Framework (including projections).
 
 ## Usage
 
@@ -104,6 +104,8 @@ Mapping syntax includes ```IPureMapperResolver``` allowing the usage of other ma
 #### Recursion Depth
 
 Recursive properties are resolved by unrolling, and as such the recursion depth (recInlineDepth) is required in such scenarios. Only one recursion depth can be specified per map, even when multiple recursive properties exist, but in return the generated tree can work even in databases. Use [named maps](#named-maps) to create different profiles if using this feature, since recursion unrolling adds inner joins **even when not included in the query**.
+
+Please be aware that recursion depth is the major culprit in performance issues, if you need to recurse for more than 10 levels please conduct your own benchmarks to decide whether the performance hit is worth it or not.
 
 #### Named Maps
 
