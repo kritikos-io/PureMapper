@@ -1,6 +1,7 @@
 namespace Kritikos.PureMap.Benchmarks
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace Kritikos.PureMap.Benchmarks
 	using BenchmarkDotNet.Horology;
 	using BenchmarkDotNet.Jobs;
 	using BenchmarkDotNet.Reports;
+	using BenchmarkDotNet.Running;
 	using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 	using Kritikos.PureMap.Benchmarks.Entity;
@@ -34,7 +36,9 @@ namespace Kritikos.PureMap.Benchmarks
 	{
 		private static ILoggerFactory? loggerFactory;
 
+#pragma warning disable 1998
 		public static async Task Main()
+#pragma warning restore 1998
 		{
 			var logger = new LoggerConfiguration()
 				.Enrich.FromLogContext()
@@ -56,7 +60,9 @@ namespace Kritikos.PureMap.Benchmarks
 				new SummaryStyle(true, SizeUnit.KB, TimeUnit.Millisecond, false, false, 20)));
 			config.Add(Job.ShortRun.With(InProcessEmitToolchain.Instance));
 
-			// var summary = BenchmarkRunner.Run<PureBenchmark>(config);
+			_ = BenchmarkRunner.Run<PureBenchmark>(config);
+
+			/*
 			try
 			{
 				await DatabaseTest();
@@ -66,8 +72,11 @@ namespace Kritikos.PureMap.Benchmarks
 				Log.Fatal(e, "ERROR");
 				throw;
 			}
+			*/
 		}
 
+		[SuppressMessage("ReSharper", "UnusedMember.Local", Justification = "Test method")]
+		[SuppressMessage("Code Quality", "IDE0051:Remove unused private members", Justification = "Test method")]
 		private static async Task DatabaseTest()
 		{
 			var bench = new PureBenchmark();
