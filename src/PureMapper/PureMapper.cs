@@ -35,6 +35,7 @@ namespace Kritikos.PureMap
 			RegisterUpdateMappings(cfg.UpdateMaps);
 		}
 
+		/// <inheritdoc />
 		public TDestination Map<TSource, TDestination>(TSource source, string name = "")
 			where TSource : class
 			where TDestination : class
@@ -48,6 +49,7 @@ namespace Kritikos.PureMap
 			return ((Func<TSource, TDestination>)mappings[key].SplicedFunc).Invoke(source);
 		}
 
+		/// <inheritdoc />
 		public TDestination Map<TSource, TDestination>(TSource source, TDestination destination, string name = "")
 		{
 			var key = (typeof(TSource), typeof(TDestination), name);
@@ -61,6 +63,7 @@ namespace Kritikos.PureMap
 				destination);
 		}
 
+		/// <inheritdoc />
 		public Expression<Func<TSource, TDestination>> Map<TSource, TDestination>(string name = "")
 			where TSource : class
 			where TDestination : class
@@ -74,11 +77,13 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)mappings[key].SplicedExpr;
 		}
 
+		/// <inheritdoc />
 		Expression<Func<TSource, TDestination>> IPureMapperResolver.Resolve<TSource, TDestination>()
 			where TSource : class
 			where TDestination : class
 			=> ((IPureMapperResolver)this).Resolve<TSource, TDestination>(string.Empty);
 
+		/// <inheritdoc />
 		Expression<Func<TSource, TDestination>> IPureMapperResolver.Resolve<TSource, TDestination>(string name)
 			where TSource : class
 			where TDestination : class
@@ -109,10 +114,12 @@ namespace Kritikos.PureMap
 			return (Expression<Func<TSource, TDestination>>)splicedExpr;
 		}
 
+		/// <inheritdoc />
 		Expression<Func<TSource, TDestination, TDestination>> IPureMapperUpdateResolver.
 			Resolve<TSource, TDestination>()
 			=> ((IPureMapperUpdateResolver)this).Resolve<TSource, TDestination>(string.Empty);
 
+		/// <inheritdoc />
 		Expression<Func<TSource, TDestination, TDestination>> IPureMapperUpdateResolver.Resolve<TSource, TDestination>(
 			string name)
 		{
