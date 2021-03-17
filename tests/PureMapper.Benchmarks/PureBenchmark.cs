@@ -1,7 +1,9 @@
 #nullable disable
 namespace Kritikos.PureMap.Benchmarks
 {
+	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Linq;
 
@@ -19,15 +21,31 @@ namespace Kritikos.PureMap.Benchmarks
 	public class PureBenchmark
 	{
 		[Params(1000, 10000)]
-		public int NumberOfIterations { get; set; }
+		public int NumberOfIterations { get; set; } = 50;
 
 		internal Person Person { get; set; }
+
+		internal PersonDto PersonDto { get; set; }
 
 		internal PureMapper PureMapper { get; set; }
 
 		internal IMapper AutoMapper { get; set; }
 
 		internal IConfigurationProvider AutoMapperConfiguration { get; set; }
+
+		public static PersonDto UpdatePerson(string firstName, string lastName, PersonDto parent, PersonDto destination)
+		{
+			if (destination == null)
+			{
+				return null;
+			}
+
+			destination.Parent = parent;
+			destination.FirstName = firstName;
+			destination.LastName = lastName;
+
+			return destination;
+		}
 
 		[GlobalSetup]
 		public void Setup()
@@ -60,9 +78,18 @@ namespace Kritikos.PureMap.Benchmarks
 						LastName = p.LastName,
 						Parent = m.Resolve<Person, PersonDto>().Invoke(p.Parent),
 					},
-					100);
+					25)
+				.Map<Person, PersonDto>(
+					m => (source, dest) => UpdatePerson(
+						source.FirstName,
+						source.LastName,
+						m.Resolve<Person, PersonDto>().Invoke(source.Parent, dest.Parent),
+						dest),
+					25);
 
 			PureMapper = new PureMapper(cfg);
+
+			PersonDto = PureMapper.Map<Person, PersonDto>(Person);
 
 			AutoMapperConfiguration = new MapperConfiguration(cfg => cfg
 				.CreateMap<Person, PersonDto>()
@@ -74,6 +101,7 @@ namespace Kritikos.PureMap.Benchmarks
 			AutoMapper = AutoMapperConfiguration.CreateMapper();
 		}
 
+		/*
 		[Benchmark]
 		public PersonDto PureMapping()
 		{
@@ -95,5 +123,105 @@ namespace Kritikos.PureMap.Benchmarks
 
 			return AutoMapper.Map<Person, PersonDto>(Person);
 		}
+
+		[Benchmark]
+		public PersonDto PureUpdate()
+		{
+			for (var i = 0; i < NumberOfIterations; i++)
+			{
+				var dto = PureMapper.Map(Person, PersonDto);
+			}
+
+			return PureMapper.Map<Person, PersonDto>(Person);
+		}
+
+		[Benchmark]
+		public PersonDto AutoUpdate()
+		{
+			for (var i = 0; i < NumberOfIterations; i++)
+			{
+				AutoMapper.Map(Person, PersonDto);
+			}
+
+			return AutoMapper.Map<Person, PersonDto>(Person);
+		}
+		*/
+
+		[Benchmark]
+		[ArgumentsSource(nameof(RecursionDepth))]
+		public PersonDto UpdateRecursion(int recInlineDepth)
+		{
+			var cfg = new PureMapperConfig()
+				.Map<Person, PersonDto>(
+					m => p => new PersonDto
+					{
+						FirstName = p.FirstName,
+						LastName = p.LastName,
+						Parent = m.Resolve<Person, PersonDto>().Invoke(p.Parent),
+					},
+					recInlineDepth)
+				.Map<Person, PersonDto>(
+					m => (source, dest) => UpdatePerson(
+						source.FirstName,
+						source.LastName,
+						m.Resolve<Person, PersonDto>().Invoke(source.Parent, dest.Parent),
+						dest),
+					recInlineDepth);
+
+			var mapper = new PureMapper(cfg);
+
+			PersonDto dto = null;
+
+			for (var i = 0; i < NumberOfIterations; i++)
+			{
+				dto = PureMapper.Map(Person, PersonDto);
+			}
+
+			return dto;
+		}
+
+		[Benchmark]
+		[ArgumentsSource(nameof(RecursionDepth))]
+		public PersonDto MapRecursion(int recInlineDepth)
+		{
+			var cfg = new PureMapperConfig()
+				.Map<Person, PersonDto>(
+					m => p => new PersonDto
+					{
+						FirstName = p.FirstName,
+						LastName = p.LastName,
+						Parent = m.Resolve<Person, PersonDto>().Invoke(p.Parent),
+					},
+					recInlineDepth)
+				.Map<Person, PersonDto>(
+					m => (source, dest) => UpdatePerson(
+						source.FirstName,
+						source.LastName,
+						m.Resolve<Person, PersonDto>().Invoke(source.Parent, dest.Parent),
+						dest),
+					recInlineDepth);
+
+			var mapper = new PureMapper(cfg);
+
+			PersonDto dto = null;
+
+			for (var i = 0; i < NumberOfIterations; i++)
+			{
+				dto = PureMapper.Map<Person, PersonDto>(Person);
+			}
+
+			return dto;
+		}
+
+		[SuppressMessage(
+			"StyleCop.CSharp.OrderingRules",
+			"SA1201:Elements should appear in the correct order",
+			Justification = "DotnetBenchmark requirement")]
+		[SuppressMessage(
+			"Performance",
+			"CA1819:Properties should not return arrays",
+			Justification = "DotnetBenchmark requirement")]
+		public int[] RecursionDepth { get; }
+			= Enumerable.Range(0, 100).ToArray();
 	}
 }
