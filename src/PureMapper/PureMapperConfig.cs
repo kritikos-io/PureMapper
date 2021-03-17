@@ -9,18 +9,22 @@ namespace Kritikos.PureMap
 
 	using Nessos.Expressions.Splicer;
 
+	/// <inheritdoc />
 	public class PureMapperConfig : IPureMapperConfig
 	{
+		/// <inheritdoc />
 		public List<(Type Source, Type Dest, string name, Func<IPureMapperResolver, LambdaExpression> Expr, int
 			RecInlineDepth)> Maps { get; }
 			= new List<(Type Source, Type Dest, string name, Func<IPureMapperResolver, LambdaExpression> Map, int
 				RecInlineDepth)>();
 
+		/// <inheritdoc />
 		public List<(Type Source, Type Dest, string name, Func<IPureMapperUpdateResolver, LambdaExpression> Expr, int
 			reclineDepth)> UpdateMaps { get; }
 			= new List<(Type Source, Type Dest, string name, Func<IPureMapperUpdateResolver, LambdaExpression> Expr, int
 				reclineDepth)>();
 
+		/// <inheritdoc />
 		public IPureMapperConfig Map<TSource, TDestination>(
 			Func<IPureMapperResolver, Expression<Func<TSource, TDestination>>> map,
 			int recInlineDepth = 0,
@@ -44,6 +48,7 @@ namespace Kritikos.PureMap
 			return this;
 		}
 
+		/// <inheritdoc />
 		public IPureMapperConfig Map<TSource, TDestination>(
 			Func<IPureMapperUpdateResolver, Expression<Func<TSource, TDestination, TDestination>>> map,
 			int recInlineDepth = 0,
